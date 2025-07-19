@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Simulation de la Vision des Couleurs</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #222;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: absolute;
+            top: 0; left: 0;
+            z-index: 1;
+        }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 2;
+            background: rgba(255,255,255,0.95);
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+            padding: 24px 32px 20px 32px;
+            min-width: 340px;
+            max-width: 400px;
+        }
+        #ui h2 {
+            margin-top: 0;
+            font-size: 1.3em;
+            color: #2a2a2a;
+        }
+        .mode-btn {
+            background: #e0e0e0;
+            border: none;
+            border-radius: 8px;
+            padding: 7px 18px;
+            margin-right: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .mode-btn.active, .mode-btn:hover {
+            background: #4a90e2;
+            color: #fff;
+        }
+        .slider-group {
+            margin: 18px 0 10px 0;
+        }
+        .slider-label {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .slider-label span {
+            width: 60px;
+            font-size: 0.98em;
+        }
+        .slider {
+            width: 160px;
+            margin: 0 10px;
+        }
+        .slider-value {
+            width: 32px;
+            text-align: right;
+            font-size: 0.98em;
+        }
+        #wavelength-bar {
+            width: 200px;
+            height: 12px;
+            background: linear-gradient(to right, #6e40aa 0%, #0094ff 20%, #00ff00 45%, #ffff00 70%, #ff0000 100%);
+            border-radius: 6px;
+            margin: 0 0 8px 0;
+            position: relative;
+        }
+        #wavelength-indicator {
+            position: absolute;
+            top: -4px;
+            width: 8px;
+            height: 20px;
+            background: #222;
+            border: 2px solid #fff;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+        .vision-types {
+            margin: 12px 0 10px 0;
+        }
+        .vision-types label {
+            margin-right: 18px;
+            font-size: 0.98em;
+        }
+        #vision-bubble {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid #aaa;
+            margin: 0 10px 0 0;
+            display: inline-block;
+            vertical-align: middle;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        #color-name {
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #333;
+            vertical-align: middle;
+        }
+        #info-text {
+            margin: 12px 0 0 0;
+            font-size: 0.98em;
+            color: #444;
+        }
+        #actions {
+            margin-top: 18px;
+            display: flex;
+            gap: 12px;
+        }
+        .action-btn {
+            background: #4a90e2;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 7px 16px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .action-btn:hover {
+            background: #357ab8;
+        }
+        #speech-bubble {
+            position: absolute;
+            left: 50%;
+            top: 80px;
+            transform: translateX(-50%);
+            min-width: 260px;
+            max-width: 340px;
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.18);
+            padding: 22px 24px 18px 24px;
+            z-index: 10;
+            display: none;
+            font-size: 1.08em;
+            color: #222;
+        }
+        .thinking-dots {
+            display: flex;
+            gap: 6px;
+            justify-content: center;
+            margin-top: 6px;
+        }
+        .thinking-dots div {
+            width: 10px;
+            height: 10px;
+            background: #4a90e2;
+            border-radius: 50%;
+            animation: blink 1.2s infinite alternate;
+        }
+        .thinking-dots div:nth-child(2) {
+            animation-delay: 0.3s;
+        }
+        .thinking-dots div:nth-child(3) {
+            animation-delay: 0.6s;
+        }
+        @keyframes blink {
+            0% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+        @media (max-width: 700px) {
+            #ui {
+                min-width: 0;
+                max-width: 98vw;
+                left: 2vw;
+                right: 2vw;
+                padding: 12px 8px 10px 8px;
+            }
+            #speech-bubble {
+                min-width: 0;
+                max-width: 90vw;
+                left: 5vw;
+                transform: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <div id="ui">
+        <h2>Simulation de la vision des couleurs</h2>
+        <div style="margin-bottom: 10px;">
+            <button class="mode-btn active" onclick="setMode('rgb', event)">Lumière RGB</button>
+            <button class="mode-btn" onclick="setMode('monochrome', event)">Monochromatique</button>
+        </div>
+        <div id="rgb-controls">
+            <div class="slider-group">
+                <div class="slider-label">
+                    <span>Rouge</span>
+                    <input type="range" min="0" max="100" value="50" class="slider" id="red-slider">
+                    <span class="slider-value" id="red-value">50</span>
+                </div>
+                <div class="slider-label">
+                    <span>Vert</span>
+                    <input type="range" min="0" max="100" value="50" class="slider" id="green-slider">
+                    <span class="slider-value" id="green-value">50</span>
+                </div>
+                <div class="slider-label">
+                    <span>Bleu</span>
+                    <input type="range" min="0" max="100" value="50" class="slider" id="blue-slider">
+                    <span class="slider-value" id="blue-value">50</span>
+                </div>
+            </div>
+        </div>
+        <div id="mono-controls" style="display:none;">
+            <div class="slider-label">
+                <span>λ (nm)</span>
+                <input type="range" min="380" max="700" value="550" class="slider" id="wavelength-slider">
+                <span class="slider-value" id="wavelength-value">550</span>
+            </div>
+            <div id="wavelength-bar">
+                <div id="wavelength-indicator" style="left:90px;"></div>
+            </div>
+        </div>
+        <div class="vision-types">
+            <label><input type="radio" name="vision" value="normal" checked> Normale</label>
+            <label><input type="radio" name="vision" value="protanopia"> Protanopie</label>
+            <label><input type="radio" name="vision" value="deuteranopia"> Deutéranopie</label>
+            <label><input type="radio" name="vision" value="tritanopia"> Tritanopie</label>
+        </div>
+        <div style="display: flex; align-items: center; margin-bottom: 6px;">
+            <div id="vision-bubble"></div>
+            <span id="color-name">Gris</span>
+        </div>
+        <div id="info-text">La personne avec vision normale perçoit cette couleur avec 50% d'intensité.</div>
+        <div id="actions">
+            <button class="action-btn" onclick="analyzeColor()">Analyser</button>
+            <button class="action-btn" onclick="speakColor()">Exprimer</button>
+        </div>
+    </div>
+    <div id="speech-bubble">
+        <div id="speech-content"></div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let scene, camera, renderer, currentMode = 'rgb';
+        let personMesh, headMesh, eyeMeshes = [], currentVisionType = 'normal';
+        let lightSource, coloredObject;
+        let currentColor = { r: 0.5, g: 0.5, b: 0.5 };
+        let isAnalyzing = false;
+        
+        function init() {
+            // Scene setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x2a2a2a);
+            
+            // Camera setup
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(3, 3, 8);
+            camera.lookAt(0, 0, 0);
+            
+            // Renderer setup
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('container').appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+            scene.add(ambientLight);
+            
+            // Create person
+            createPerson();
+            
+            // Create light source
+            createLightSource();
+            
+            // Create colored objects
+            createColoredObjects();
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Start animation
+            animate();
+        }
+        
+        function createPerson() {
+            // Body
+            const bodyGeometry = new THREE.CylinderGeometry(0.6, 0.8, 2.5, 8);
+            const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x4a4a4a });
+            personMesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            personMesh.position.set(2, 0, 0);
+            scene.add(personMesh);
+            
+            // Head
+            const headGeometry = new THREE.SphereGeometry(0.6, 16, 16);
+            const headMaterial = new THREE.MeshLambertMaterial({ color: 0xfdbcb4 });
+            headMesh = new THREE.Mesh(headGeometry, headMaterial);
+            headMesh.position.set(2, 2, 0);
+            scene.add(headMesh);
+            
+            // Eyes
+            const eyeGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+            const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x87CEEB });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(1.7, 2.1, 0.4);
+            scene.add(leftEye);
+            eyeMeshes.push(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(1.7, 2.1, -0.4);
+            scene.add(rightEye);
+            eyeMeshes.push(rightEye);
+            
+            // Pupils
+            const pupilGeometry = new THREE.SphereGeometry(0.05, 8, 8);
+            const pupilMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            
+            const leftPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+            leftPupil.position.set(1.6, 2.1, 0.4);
+            scene.add(leftPupil);
+            
+            const rightPupil = new THREE.Mesh(pupilGeometry, pupilMaterial);
+            rightPupil.position.set(1.6, 2.1, -0.4);
+            scene.add(rightPupil);
+            
+            // Arms pointing towards the light
+            const armGeometry = new THREE.CylinderGeometry(0.1, 0.1, 1.5, 8);
+            const armMaterial = new THREE.MeshLambertMaterial({ color: 0xfdbcb4 });
+            
+            const leftArm = new THREE.Mesh(armGeometry, armMaterial);
+            leftArm.position.set(1.2, 0.5, 0.8);
+            leftArm.rotation.z = Math.PI / 4;
+            leftArm.rotation.y = -Math.PI / 6;
+            scene.add(leftArm);
+            
+            const rightArm = new THREE.Mesh(armGeometry, armMaterial);
+            rightArm.position.set(1.2, 0.5, -0.8);
+            rightArm.rotation.z = Math.PI / 4;
+            rightArm.rotation.y = Math.PI / 6;
+            scene.add(rightArm);
+        }
+        
+        function createLightSource() {
+            // Light source (bulb)
+            const lightGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+            const lightMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xffffff,
+                transparent: true,
+                opacity: 0.9
+            });
+            lightSource = new THREE.Mesh(lightGeometry, lightMaterial);
+            lightSource.position.set(-2, 2, 0);
+            scene.add(lightSource);
+            
+            // Light stand
+            const standGeometry = new THREE.CylinderGeometry(0.05, 0.05, 2, 8);
+            const standMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
+            const lightStand = new THREE.Mesh(standGeometry, standMaterial);
+            lightStand.position.set(-2, 1, 0);
+            scene.add(lightStand);
+            
+            // Directional light
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+            dirLight.position.set(-2, 2, 0);
+            dirLight.target.position.set(2, 2, 0);
+            scene.add(dirLight);
+            scene.add(dirLight.target);
+        }
+        
+        function createColoredObjects() {
+            // Create some objects that will be colored
+            const objects = [];
+            
+            // Apple
+            const appleGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+            const appleMaterial = new THREE.MeshLambertMaterial({ color: 0xff0000 });
+            const apple = new THREE.Mesh(appleGeometry, appleMaterial);
+            apple.position.set(-1, 0.5, 1);
+            scene.add(apple);
+            objects.push(apple);
+            
+            // Banana
+            const bananaGeometry = new THREE.CylinderGeometry(0.1, 0.15, 0.8, 8);
+            const bananaMaterial = new THREE.MeshLambertMaterial({ color: 0xffff00 });
+            const banana = new THREE.Mesh(bananaGeometry, bananaMaterial);
+            banana.position.set(0, 0.5, 1.5);
+            banana.rotation.z = Math.PI / 6;
+            scene.add(banana);
+            objects.push(banana);
+            
+            // Leaf
+            const leafGeometry = new THREE.PlaneGeometry(0.5, 0.3);
+            const leafMaterial = new THREE.MeshLambertMaterial({ 
+                color: 0x00ff00,
+                side: THREE.DoubleSide
+            });
+            const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+            leaf.position.set(0.5, 0.5, 1);
+            leaf.rotation.x = -Math.PI / 2;
+            scene.add(leaf);
+            objects.push(leaf);
+            
+            coloredObject = objects;
+        }
+        
+        function setupEventListeners() {
+            // RGB sliders
+            const redSlider = document.getElementById('red-slider');
+            const greenSlider = document.getElementById('green-slider');
+            const blueSlider = document.getElementById('blue-slider');
+            const wavelengthSlider = document.getElementById('wavelength-slider');
+            
+            redSlider.addEventListener('input', updateVision);
+            greenSlider.addEventListener('input', updateVision);
+            blueSlider.addEventListener('input', updateVision);
+            wavelengthSlider.addEventListener('input', updateVision);
+            
+            // Vision type radio buttons
+            const visionRadios = document.querySelectorAll('input[name="vision"]');
+            visionRadios.forEach(radio => {
+                radio.addEventListener('change', function() {
+                    currentVisionType = this.value;
+                    updateVision();
+                });
+            });
+            
+            // Window resize
+            window.addEventListener('resize', onWindowResize);
+        }
+        
+        function updateVision() {
+            const redValue = parseInt(document.getElementById('red-slider').value);
+            const greenValue = parseInt(document.getElementById('green-slider').value);
+            const blueValue = parseInt(document.getElementById('blue-slider').value);
+            
+            document.getElementById('red-value').textContent = redValue;
+            document.getElementById('green-value').textContent = greenValue;
+            document.getElementById('blue-value').textContent = blueValue;
+            
+            let r = redValue / 100;
+            let g = greenValue / 100;
+            let b = blueValue / 100;
+            
+            // Apply vision deficiency
+            if (currentVisionType !== 'normal') {
+                [r, g, b] = applyVisionDeficiency(r, g, b, currentVisionType);
+            }
+            
+            // Update light source color
+            if (currentMode === 'rgb') {
+                lightSource.material.color.setRGB(r, g, b);
+            } else if (currentMode === 'monochrome') {
+                const wavelength = parseInt(document.getElementById('wavelength-slider').value);
+                document.getElementById('wavelength-value').textContent = wavelength;
+                
+                const color = wavelengthToColor(wavelength);
+                const tempColor = new THREE.Color(color);
+                let wr = tempColor.r;
+                let wg = tempColor.g;
+                let wb = tempColor.b;
+                
+                if (currentVisionType !== 'normal') {
+                    [wr, wg, wb] = applyVisionDeficiency(wr, wg, wb, currentVisionType);
+                }
+                
+                lightSource.material.color.setRGB(wr, wg, wb);
+                r = wr; g = wg; b = wb;
+                
+                // Update wavelength indicator
+                const indicator = document.getElementById('wavelength-indicator');
+                const position = ((wavelength - 380) / (700 - 380)) * 196;
+                indicator.style.left = position + 'px';
+            }
+            
+            // Update vision bubble
+            const visionBubble = document.getElementById('vision-bubble');
+            const finalColor = `rgb(${Math.round(r * 255)}, ${Math.round(g * 255)}, ${Math.round(b * 255)})`;
+            visionBubble.style.backgroundColor = finalColor;
+            
+            // Update color name
+            const colorName = getColorName(r, g, b);
+            document.getElementById('color-name').textContent = colorName;
+            
+            // Store current color for analysis
+            currentColor = { r: r, g: g, b: b };
+            
+            // Update info text
+            updateInfoText(r, g, b);
+            
+            // Make eyes "look" at the light
+            const time = Date.now() * 0.001;
+            eyeMeshes.forEach(eye => {
+                eye.lookAt(lightSource.position);
+                eye.scale.y = 0.8 + 0.2 * Math.sin(time * 2); // Blinking
+            });
+        }
+        
+        function applyVisionDeficiency(r, g, b, type) {
+            switch (type) {
+                case 'protanopia': // Red-blind
+                    return [0, 0.9 * g + 0.1 * b, b];
+                case 'deuteranopia': // Green-blind
+                    return [r, 0.1 * r + 0.9 * b, b];
+                case 'tritanopia': // Blue-blind
+                    return [r, g, 0.1 * r + 0.9 * g];
+                default:
+                    return [r, g, b];
+            }
+        }
+        
+        function wavelengthToColor(wavelength) {
+            let r, g, b;
+            
+            if (wavelength >= 380 && wavelength < 440) {
+                r = -(wavelength - 440) / (440 - 380);
+                g = 0;
+                b = 1;
+            } else if (wavelength >= 440 && wavelength < 490) {
+                r = 0;
+                g = (wavelength - 440) / (490 - 440);
+                b = 1;
+            } else if (wavelength >= 490 && wavelength < 510) {
+                r = 0;
+                g = 1;
+                b = -(wavelength - 510) / (510 - 490);
+            } else if (wavelength >= 510 && wavelength < 580) {
+                r = (wavelength - 510) / (580 - 510);
+                g = 1;
+                b = 0;
+            } else if (wavelength >= 580 && wavelength < 645) {
+                r = 1;
+                g = -(wavelength - 645) / (645 - 580);
+                b = 0;
+            } else if (wavelength >= 645 && wavelength <= 700) {
+                r = 1;
+                g = 0;
+                b = 0;
+            } else {
+                r = 0;
+                g = 0;
+                b = 0;
+            }
+            
+            return new THREE.Color(r, g, b).getHex();
+        }
+        
+        function getColorName(r, g, b) {
+            const colors = [
+                { name: 'Noir', r: 0, g: 0, b: 0 },
+                { name: 'Blanc', r: 1, g: 1, b: 1 },
+                { name: 'Rouge', r: 1, g: 0, b: 0 },
+                { name: 'Vert', r: 0, g: 1, b: 0 },
+                { name: 'Bleu', r: 0, g: 0, b: 1 },
+                { name: 'Jaune', r: 1, g: 1, b: 0 },
+                { name: 'Magenta', r: 1, g: 0, b: 1 },
+                { name: 'Cyan', r: 0, g: 1, b: 1 },
+                { name: 'Orange', r: 1, g: 0.5, b: 0 },
+                { name: 'Violet', r: 0.5, g: 0, b: 1 },
+                { name: 'Rose', r: 1, g: 0.5, b: 0.5 },
+                { name: 'Gris', r: 0.5, g: 0.5, b: 0.5 }
+            ];
+            
+            let closestColor = colors[0];
+            let minDistance = Infinity;
+            
+            colors.forEach(color => {
+                const distance = Math.sqrt(
+                    Math.pow(r - color.r, 2) + 
+                    Math.pow(g - color.g, 2) + 
+                    Math.pow(b - color.b, 2)
+                );
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestColor = color;
+                }
+            });
+            
+            return closestColor.name;
+        }
+        
+        function analyzeColor() {
+            if (isAnalyzing) return;
+            
+            isAnalyzing = true;
+            const speechBubble = document.getElementById('speech-bubble');
+            const speechContent = document.getElementById('speech-content');
+            
+            // Show thinking animation
+            speechContent.innerHTML = `
+                <div style="font-size: 16px; margin-bottom: 10px;">🤔 Analyse en cours...</div>
+                <div class="thinking-dots">
+                    <div></div>
+                    <div></div>
+                    <div></div>
+                </div>
+            `;
+            speechBubble.style.display = 'block';
+            
+            // Simulate analysis time
+            setTimeout(() => {
+                const analysis = getDetailedColorAnalysis(currentColor.r, currentColor.g, currentColor.b);
+                speechContent.innerHTML = `
+                    <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">📊 Analyse complète</div>
+                    <div style="text-align: left; line-height: 1.6;">
+                        <strong>Couleur:</strong> ${analysis.name}<br>
+                        <strong>Intensité:</strong> ${analysis.brightness}%<br>
+                        <strong>Saturation:</strong> ${analysis.saturation}<br>
+                        <strong>Dominante:</strong> ${analysis.dominant}<br>
+                        <strong>Température:</strong> ${analysis.temperature}<br>
+                        <strong>Émotion:</strong> ${analysis.emotion}
+                    </div>
+                `;
+                
+                // Hide after 5 seconds
+                setTimeout(() => {
+                    speechBubble.style.display = 'none';
+                    isAnalyzing = false;
+                }, 5000);
+            }, 2000);
+        }
+        
+        function speakColor() {
+            if (isAnalyzing) return;
+            
+            isAnalyzing = true;
+            const speechBubble = document.getElementById('speech-bubble');
+            const speechContent = document.getElementById('speech-content');
+            
+            const colorName = getColorName(currentColor.r, currentColor.g, currentColor.b);
+            const commentary = getColorCommentary(currentColor.r, currentColor.g, currentColor.b);
+            
+            speechContent.innerHTML = `
+                <div style="font-size: 20px; margin-bottom: 15px;">💬</div>
+                <div style="font-size: 18px; font-weight: bold; margin-bottom: 10px;">
+                    "Je vois du ${colorName.toLowerCase()}"
+                </div>
+                <div style="font-style: italic; color: #666;">
+                    ${commentary}
+                </div>
+            `;
+            speechBubble.style.display = 'block';
+            
+            // Add blinking animation to eyes while speaking
+            eyeMeshes.forEach(eye => {
+                eye.material.color.setHex(0x87CEEB);
+            });
+            
+            // Hide after 4 seconds
+            setTimeout(() => {
+                speechBubble.style.display = 'none';
+                isAnalyzing = false;
+            }, 4000);
+        }
+        
+        function getDetailedColorAnalysis(r, g, b) {
+            const brightness = Math.round((r + g + b) / 3 * 100);
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const saturation = max === 0 ? 0 : Math.round((max - min) / max * 100);
+            
+            let dominant = 'Équilibrée';
+            if (r > g && r > b) dominant = 'Rouge';
+            else if (g > r && g > b) dominant = 'Verte';
+            else if (b > r && b > g) dominant = 'Bleue';
+            
+            let temperature = 'Neutre';
+            if (r > b) temperature = 'Chaude';
+            else if (b > r) temperature = 'Froide';
+            
+            let emotion = 'Neutre';
+            if (r > 0.7 && g < 0.3 && b < 0.3) emotion = 'Passionnée';
+            else if (g > 0.7 && r < 0.3 && b < 0.3) emotion = 'Apaisante';
+            else if (b > 0.7 && r < 0.3 && g < 0.3) emotion = 'Mélancolique';
+            else if (r > 0.8 && g > 0.8 && b < 0.3) emotion = 'Joyeuse';
+            else if (r < 0.2 && g < 0.2 && b < 0.2) emotion = 'Sombre';
+            else if (r > 0.8 && g > 0.8 && b > 0.8) emotion = 'Pure';
+            
+            return {
+                name: getColorName(r, g, b),
+                brightness: brightness,
+                saturation: saturation + '%',
+                dominant: dominant,
+                temperature: temperature,
+                emotion: emotion
+            };
+        }
+        
+        function getColorCommentary(r, g, b) {
+            const colorName = getColorName(r, g, b);
+            const brightness = (r + g + b) / 3;
+            
+            const commentaries = {
+                'Rouge': [
+                    "Cette couleur me fait penser à la passion et à l'énergie.",
+                    "C'est une couleur chaude qui attire l'attention.",
+                    "Cela me rappelle les roses ou les pommes mûres."
+                ],
+                'Vert': [
+                    "Cette couleur m'évoque la nature et la tranquillité.",
+                    "C'est reposant pour mes yeux, comme regarder la forêt.",
+                    "Cela me fait penser aux feuilles au printemps."
+                ],
+                'Bleu': [
+                    "Cette couleur me donne une sensation de calme.",
+                    "C'est comme regarder le ciel ou l'océan.",
+                    "Cette teinte froide est très apaisante."
+                ],
+                'Jaune': [
+                    "Cette couleur lumineuse me remplit de joie !",
+                    "C'est comme un rayon de soleil.",
+                    "Cette couleur chaude est très énergisante."
+                ],
+                'Blanc': [
+                    "Cette pureté est éclatante pour mes yeux.",
+                    "C'est comme regarder la neige fraîche.",
+                    "Cette couleur représente la simplicité."
+                ],
+                'Noir': [
+                    "Cette absence de couleur est mystérieuse.",
+                    "C'est une couleur élégante et profonde.",
+                    "Cette obscurité contraste avec la lumière."
+                ],
+                'Gris': [
+                    "Cette couleur neutre est très équilibrée.",
+                    "C'est comme regarder les nuages.",
+                    "Cette teinte est subtile et sophistiquée."
+                ]
+            };
+            
+            const comments = commentaries[colorName] || [
+                "Cette couleur est intéressante à observer.",
+                "Mes yeux perçoivent cette teinte unique.",
+                "C'est une couleur fascinante à analyser."
+            ];
+            
+            return comments[Math.floor(Math.random() * comments.length)];
+        }
+        
+        function setMode(mode, event) {
+            currentMode = mode;
+            
+            // Update button states
+            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Show/hide controls
+            document.getElementById('rgb-controls').style.display = mode === 'rgb' ? 'block' : 'none';
+            document.getElementById('mono-controls').style.display = mode === 'monochrome' ? 'block' : 'none';
+            
+            updateVision();
+        }
+        
+        function updateInfoText(r, g, b) {
+            const infoText = document.getElementById('info-text');
+            const visionType = currentVisionType === 'normal' ? 'normale' : 
+                             currentVisionType === 'protanopia' ? 'protanopie (déficience rouge)' :
+                             currentVisionType === 'deuteranopia' ? 'deutéranopie (déficience verte)' :
+                             'tritanopie (déficience bleue)';
+            
+            if (currentMode === 'rgb') {
+                const intensity = Math.round((r + g + b) / 3 * 100);
+                infoText.textContent = `La personne avec vision ${visionType} perçoit cette couleur avec ${intensity}% d'intensité. Les cônes de la rétine captent les longueurs d'onde et transmettent l'information au cerveau.`;
+            } else if (currentMode === 'monochrome') {
+                const wavelength = parseInt(document.getElementById('wavelength-slider').value);
+                infoText.textContent = `Longueur d'onde: ${wavelength}nm. Vision ${visionType}. Cette lumière monochromatique stimule spécifiquement certains cônes de la rétine.`;
+            } else {
+                infoText.textContent = `Mode objets colorés. Vision ${visionType}. Observez comment la personne perçoit les couleurs des objets du quotidien.`;
+            }
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Rotate the person slightly to show they're observing
+            const time = Date.now() * 0.0005;
+            headMesh.rotation.y = Math.sin(time) * 0.1;
+            
+            // Make light source glow
+            lightSource.material.opacity = 0.8 + 0.2 * Math.sin(Date.now() * 0.005);
+            
+            renderer.render(scene, camera);
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // Initialize the simulation
+        init();
+        updateVision();
+    </script>
+</body>
+</html> 

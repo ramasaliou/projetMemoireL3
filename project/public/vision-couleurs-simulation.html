@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision des Couleurs - Perception Humaine</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            overflow: hidden;
+        }
+        
+        #container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            color: #ffdd44;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .slider-container label {
+            width: 80px;
+            font-size: 14px;
+        }
+        
+        .slider {
+            width: 200px;
+            margin: 0 10px;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+        }
+        
+        .red-slider {
+            background: linear-gradient(to right, #333, #ff0000);
+        }
+        
+        .green-slider {
+            background: linear-gradient(to right, #333, #00ff00);
+        }
+        
+        .blue-slider {
+            background: linear-gradient(to right, #333, #0000ff);
+        }
+        
+        .value-display {
+            width: 40px;
+            text-align: center;
+            font-size: 12px;
+        }
+        
+        .mode-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .mode-btn {
+            padding: 8px 16px;
+            border: 2px solid #ffdd44;
+            background: transparent;
+            color: #ffdd44;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .mode-btn.active {
+            background: #ffdd44;
+            color: #1a1a1a;
+        }
+        
+        .mode-btn:hover {
+            background: rgba(255, 221, 68, 0.2);
+        }
+        
+        #perception-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            text-align: center;
+            min-width: 200px;
+        }
+        
+        #vision-bubble {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            margin: 10px auto;
+            border: 3px solid #fff;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+        }
+        
+        #info {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            max-width: 350px;
+        }
+        
+        .deficiency-controls {
+            margin-top: 15px;
+        }
+        
+        .deficiency-controls label {
+            display: block;
+            margin-bottom: 5px;
+            cursor: pointer;
+        }
+        
+        .deficiency-controls input {
+            margin-right: 8px;
+        }
+        
+        .wavelength-bar {
+            width: 200px;
+            height: 20px;
+            background: linear-gradient(to right, #8b00ff, #4b0082, #0000ff, #00ff00, #ffff00, #ff7f00, #ff0000);
+            border-radius: 10px;
+            margin: 10px 0;
+            position: relative;
+        }
+        
+        .wavelength-indicator {
+            position: absolute;
+            top: -5px;
+            width: 4px;
+            height: 30px;
+            background: white;
+            border-radius: 2px;
+            transition: left 0.3s;
+        }
+        
+        #color-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .analyze-button {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 10px 5px;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+        
+        .analyze-button:hover {
+            background: #ff5252;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+        
+        .analyze-button:active {
+            transform: translateY(0);
+        }
+        
+        #speech-bubble {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 300px;
+            text-align: center;
+            z-index: 2000;
+            display: none;
+            animation: popIn 0.5s ease-out;
+        }
+        
+        #speech-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 15px solid rgba(255, 255, 255, 0.95);
+        }
+        
+        @keyframes popIn {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+                opacity: 0;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .thinking-dots {
+            display: inline-block;
+            position: relative;
+            width: 60px;
+            height: 20px;
+        }
+        
+        .thinking-dots div {
+            position: absolute;
+            top: 8px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #333;
+            animation: thinking 1.2s linear infinite;
+        }
+        
+        .thinking-dots div:nth-child(1) { left: 8px; animation-delay: 0s; }
+        .thinking-dots div:nth-child(2) { left: 26px; animation-delay: -0.4s; }
+        .thinking-dots div:nth-child(3) { left: 44px; animation-delay: -0.8s; }
+        
+        @keyframes thinking {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1.2); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="controls">
+            <div class="control-group">
+                <h3>Type de Test</h3>
+                <div class="mode-buttons">
+                    <button class="mode-btn active" onclick="setMode('rgb')">Mélange RGB</button>
+                    <button class="mode-btn" onclick="setMode('monochrome')">Longueur d'onde</button>
+                    <button class="mode-btn" onclick="setMode('objects')">Objets colorés</button>
+                </div>
+            </div>
+            
+            <div class="control-group" id="rgb-controls">
+                <h3>Intensité des Couleurs</h3>
+                <div class="slider-container">
+                    <label>Rouge:</label>
+                    <input type="range" class="slider red-slider" min="0" max="100" value="50" id="red-slider">
+                    <span class="value-display" id="red-value">50</span>
+                </div>
+                <div class="slider-container">
+                    <label>Vert:</label>
+                    <input type="range" class="slider green-slider" min="0" max="100" value="50" id="green-slider">
+                    <span class="value-display" id="green-value">50</span>
+                </div>
+                <div class="slider-container">
+                    <label>Bleu:</label>
+                    <input type="range" class="slider blue-slider" min="0" max="100" value="50" id="blue-slider">
+                    <span class="value-display" id="blue-value">50</span>
+                </div>
+            </div>
+            
+            <div class="control-group" id="mono-controls" style="display: none;">
+                <h3>Longueur d'onde</h3>
+                <div class="slider-container">
+                    <label>λ (nm):</label>
+                    <input type="range" class="slider" min="380" max="700" value="550" id="wavelength-slider" 
+                           style="background: linear-gradient(to right, #8b00ff, #4b0082, #0000ff, #00ff00, #ffff00, #ff7f00, #ff0000);">
+                    <span class="value-display" id="wavelength-value">550</span>
+                </div>
+                <div class="wavelength-bar">
+                    <div class="wavelength-indicator" id="wavelength-indicator"></div>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <h3>Déficiences Visuelles</h3>
+                <div class="deficiency-controls">
+                    <label><input type="radio" name="vision" value="normal" checked> Vision normale</label>
+                    <label><input type="radio" name="vision" value="protanopia"> Protanopie (rouge)</label>
+                    <label><input type="radio" name="vision" value="deuteranopia"> Deutéranopie (vert)</label>
+                    <label><input type="radio" name="vision" value="tritanopia"> Tritanopie (bleu)</label>
+                </div>
+            </div>
+        </div>
+        
+        <div id="perception-display">
+            <h4>Ce que la personne voit</h4>
+            <div id="vision-bubble"></div>
+            <div id="color-name">Couleur perçue</div>
+            <button class="analyze-button" onclick="analyzeColor()">🔍 Analyser</button>
+            <button class="analyze-button" onclick="speakColor()">🗣️ Dire</button>
+        </div>
+        
+        <div id="speech-bubble">
+            <div id="speech-content"></div>
+        </div>
+        
+        <div id="info">
+            <h4>Informations</h4>
+            <p id="info-text">Observez comment une personne perçoit les couleurs. Ajustez les paramètres pour voir l'effet sur la vision humaine.</p>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // ... tout le code JS fourni par l'utilisateur ...
+        // (voir message précédent pour le détail complet)
+    </script>
+</body>
+</html> 

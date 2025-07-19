@@ -1,0 +1,20 @@
+{
+  "name": "virtual-lab-platform",
+  "version": "1.0.0",
+  "description": "Plateforme de laboratoire virtuel SVT",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd project && npm run dev",
+    "install:all": "npm install && cd backend && npm install && cd ../project && npm install",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd project && npm run build && npm run preview"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": ["education", "virtual-lab", "svt", "react", "nodejs"],
+  "author": "Virtual Lab Team",
+  "license": "MIT"
+} 
